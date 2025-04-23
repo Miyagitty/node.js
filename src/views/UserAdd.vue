@@ -1,13 +1,14 @@
 <template>
   <div class="login-container">
     <form @submit.prevent="handleSubmit" enctype="multipart/form-data">
+      <!-- 修改用户名和网站字段 -->
       <div class="form-group">
-        <label for="username">用户名：</label>
-        <input v-model="formData.username" type="text" id="username" name="username">
+        <label for="name">姓名：</label>
+        <input v-model="formData.name" type="text" id="name" name="name">
       </div>
       <div class="form-group">
-        <label for="password">密码：</label>
-        <input v-model="formData.password" type="password" id="password" name="password">
+        <label for="web">网站：</label>
+        <input v-model="formData.web" type="url" id="web" name="web">
       </div>
       <div class="form-group">
         <label for="date">日期：</label>
@@ -32,11 +33,12 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const formData = ref({
-  username: '',
-  password: '',
+  name: '',
+  web: '',
   date: '',
   address: ''
 });
@@ -48,8 +50,8 @@ const handleFileChange = (e) => {
 
 const handleSubmit = async () => {
   const form = new FormData();
-  form.append('username', formData.value.username);
-  form.append('password', formData.value.password);
+  form.append('name', formData.value.name);
+  form.append('web', formData.value.web);
   form.append('date', formData.value.date);
   form.append('address', formData.value.address);
   if (selectedFile.value) {
@@ -61,10 +63,10 @@ const handleSubmit = async () => {
         'Content-Type': 'multipart/form-data'
       }
     });
-    console.log('用户添加成功');
+    ElMessage.success('用户添加成功');
     router.push('/user'); // 添加成功后跳转到用户列表
   } catch (error) {
-    console.error('用户添加失败:', error);
+    ElMessage.error('用户添加失败:', error);
   }
 };
 </script>

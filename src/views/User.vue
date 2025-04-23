@@ -7,6 +7,14 @@
     <el-table :data="data.arr" border style="width: 80%; margin: 10px auto;" stripe>
       <el-table-column prop="id" label="编号" width="80" header-align="center" align="center" />
       <el-table-column prop="name" label="姓名" header-align="center" align="center" />
+      <el-table-column label="头像" width="120" align="center">
+        <template #default="scope">
+          <div class="avatar-cell">
+            <img v-if="scope.row.avatar" :src="scope.row.avatar" class="avatar-image">
+            <span v-else class="avatar-placeholder">暂无头像</span>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column prop="web" label="网站" width="300" header-align="center" align="center" />
       <el-table-column prop="address" label="地址" header-align="center" align="center" />
       <el-table-column prop="date" label="日期" header-align="center" align="center" />
@@ -17,7 +25,7 @@
             编辑
           </el-button>
           <!-- 修改后 -->
-          <el-button @click="del(scope.row.id)">删除</el-button>
+          <el-button size="small" type="danger" @click="del(scope.row.id)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -27,6 +35,22 @@
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="姓名">
           <el-input v-model="editForm.name" />
+        </el-form-item>
+        <!-- 新增头像管理 -->
+        <el-form-item label="头像">
+          <div class="avatar-manager">
+            <input type="file" ref="avatarInput" accept="image/*" @change="handleAvatarChange" style="display: none;">
+            <el-button type="primary" @click="$refs.avatarInput.click()">
+              {{ tempAvatar ? '更换头像' : '上传头像' }}
+            </el-button>
+
+            <div class="preview-area">
+              <img v-if="tempAvatar || editForm.avatar" :src="tempAvatar || editForm.avatar" class="avatar-preview">
+              <el-button v-if="tempAvatar || editForm.avatar" type="danger" size="mini" @click="removeTempAvatar">
+                移除
+              </el-button>
+            </div>
+          </div>
         </el-form-item>
         <el-form-item label="网站">
           <el-input v-model="editForm.web" />
@@ -129,35 +153,83 @@ const editForm = ref({
   date: ''
 })
 
-// 添加打开编辑对话框方法
+// 新增响应式数据
+const tempAvatar = ref(null)  // 暂存头像文件
+const avatarFile = ref(null)  // 暂存文件对象
+
+// 打开编辑时初始化
 const openEdit = (row) => {
   editForm.value = { ...row }
+  tempAvatar.value = null
+  avatarFile.value = null
   dialogVisible.value = true
 }
 
+// 处理头像选择
+const handleAvatarChange = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+
+  // 文件验证
+  if (!file.type.startsWith('image/')) {
+    ElMessage.error('请选择图片文件')
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.error('文件大小不能超过2MB')
+    return
+  }
+
+  // 生成预览
+  tempAvatar.value = URL.createObjectURL(file)
+  avatarFile.value = file
+}
+
+// 移除暂存头像
+const removeTempAvatar = () => {
+  tempAvatar.value = null
+  avatarFile.value = null
+}
+
+// 修改保存方法
 const saveEdit = async () => {
   try {
-    // 发送更新请求
-    await axios.put(`http://localhost:3000/api/users/${editForm.value.id}`, editForm.value)
+    const formData = new FormData()
+
+    // 添加其他字段
+    Object.entries(editForm.value).forEach(([key, value]) => {
+      formData.append(key, value)
+    })
+
+    // 添加头像文件（如果存在）
+    if (avatarFile.value) {
+      formData.append('avatar', avatarFile.value)
+    } else if (!editForm.value.avatar) {
+      formData.append('removeAvatar', 'true')
+    }
+
+    // 发送请求
+    const res = await axios.put(`/api/users/${editForm.value.id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
 
     // 更新本地数据
     const index = data.value.arr.findIndex(item => item.id === editForm.value.id)
     if (index !== -1) {
-      data.value.arr.splice(index, 1, { ...editForm.value })
+      data.value.arr.splice(index, 1, {
+        ...editForm.value,
+        avatar: res.data.avatar // 假设接口返回新头像地址
+      })
     }
 
     ElMessage.success('修改成功')
     dialogVisible.value = false
   } catch (error) {
-    ElMessage.error('修改失败')
-    console.error(error)
+    ElMessage.error(`修改失败: ${error.response?.data?.message || error.message}`)
   }
 }
 </script>
 
-<style scoped>
-/* 样式保持不变 */
-</style>
 <style scoped>
 .top {
   margin: 10px;
@@ -195,5 +267,45 @@ const saveEdit = async () => {
 
 .el-table--striped .el-table__body tr.el-table__row--striped td {
   background-color: #fafafa;
+}
+
+.avatar-cell {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  color: #909399;
+  font-size: 12px;
+}
+
+.avatar-manager {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.preview-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid #ebeef5;
 }
 </style>
