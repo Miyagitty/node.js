@@ -15,7 +15,8 @@
           <el-button size="small" type="primary" @click="saveEdit(scope.row)" class="action-button">
             编辑
           </el-button>
-          <el-button size="small" type="danger" @click="del(scope.id)" class="action-button">删除</el-button>
+          <!-- 修改后 -->
+          <el-button @click="del(scope.row.id)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -81,8 +82,13 @@ const del = (id) => {
     cancelButtonText: '取消'
   }).then(async () => {
     try {
-      await axios.delete(`http://localhost:3000/api/users`);
+      // 修改前：未传递 ID
+      // await axios.delete(`http://localhost:3000/api/users`);
+
+      // 修改后：将 ID 加入 URL
+      await axios.delete(`http://localhost:3000/api/users/${id}`);  // ✅
       data.value.arr = data.value.arr.filter((item) => item.id !== id);
+      ElMessage.success('删除成功');
     } catch (error) {
       ElMessage.error('删除失败');
       console.error(error);
