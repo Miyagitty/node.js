@@ -8,14 +8,17 @@
     <!-- 分类导航 -->
     <el-tabs v-model="activeCategory" class="category-tabs">
       <el-row :gutter="20" class="product-list">
-        <el-col :span="6" v-for="(product, index) in filteredProducts" :key="index" class="product-col">
+        <el-col class="product-col" :span="4.8" v-for="(product, index) in filteredProducts" :key="index">
+
           <el-card class="product-card" :body-style="{ padding: '0px' }" shadow="hover">
             <div class="tag-container">
               <el-tag v-if="product.isHot" type="danger" effect="dark">热销</el-tag>
               <el-tag v-if="product.stock < 10" type="warning" effect="plain">仅剩{{ product.stock }}件</el-tag>
             </div>
 
-            <el-image :src="product.image" fit="cover" class="product-image" :preview-src-list="[product.image]" />
+            <!-- 修改el-image组件 -->
+            <el-image :src="`http://localhost:3001${product.image}`" fit="cover" class="product-image"
+              :preview-src-list="[`http://localhost:3001${product.image}`]" />
 
             <div class="product-info">
               <h4 class="product-title">{{ product.name }}</h4>
@@ -52,29 +55,50 @@
         </el-col>
       </el-row>
 
-      <!-- 分页 -->
-      <el-pagination class="pagination" background layout="prev, pager, next" :total="100" :page-size="8"
-        @current-change="handlePageChange" />
+      <el-pagination class="pagination" background layout="prev, pager, next" :total="total" :page-size="pageSize"
+        :current-page="currentPage" @current-change="handlePageChange" />
+
     </el-tabs>
   </el-card>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ShoppingCart, ZoomIn, SoldOut } from '@element-plus/icons-vue'
+import axios from 'axios'
+
+// 添加分页相关变量
+const pageSize = ref(10);
+const total = ref(0);
+const currentPage = ref(1);
+
 
 // 商品数据
-const products = ref(Array(8).fill().map((_, i) => ({
-  id: i + 1,
-  name: '天选5pro',
-  price: 5999.00,
-  originalPrice: 8999.00,
-  image: '/天选5pro.jpg',
-  sales: Math.floor(Math.random() * 1000),
-  rating: Number((Math.random() * 3 + 2).toFixed(1)),
-  stock: Math.floor(Math.random() * 50),
-  isHot: Math.random() > 0.5
-})))
+const products = ref([])
+
+// 修改后的获取商品方法
+const fetchProducts = async () => {
+  try {
+    const response = await axios.get('http://localhost:3001/api/products', {
+      params: {
+        page: currentPage.value,
+        pageSize: pageSize.value,
+        sortBy: filter.value.sortBy,
+        minPrice: filter.value.minPrice,
+        maxPrice: filter.value.maxPrice
+      }
+    });
+    products.value = response.data.products;
+    total.value = response.data.total;
+  } catch (error) {
+    ElMessage.error('获取商品数据失败');
+  }
+};
+
+// 在组件挂载时获取数据
+onMounted(() => {
+  fetchProducts()
+})
 
 const filter = ref({
   minPrice: 0,
@@ -95,6 +119,8 @@ const filteredProducts = computed(() => {
 })
 
 const handlePageChange = (page) => {
+  currentPage.value = page;  // 新增页码更新
+  fetchProducts();           // 新增数据重新获取
   console.log('当前页码:', page)
 }
 
@@ -206,5 +232,25 @@ const quickView = (product) => {
 .el-col {
   border-radius: 4px;
   margin-bottom: 5px;
+}
+
+/* 添加栅格系统响应式 */
+.product-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -10px;
+}
+
+.product-col {
+  width: 20%;
+  /* 5列布局 (100% / 5 = 20%) */
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* 移除Element默认的span设置 */
+.product-col {
+  max-width: 20%;
+  flex: 0 0 20%;
 }
 </style>
