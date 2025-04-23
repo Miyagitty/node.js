@@ -1,6 +1,6 @@
 <template>
   <div class="login-container">
-    <form action="http://localhost:3000/api/uploads" method="POST" enctype="multipart/form-data">
+    <form @submit.prevent="handleSubmit" enctype="multipart/form-data">
       <div class="form-group">
         <label for="username">用户名：</label>
         <input v-model="formData.username" type="text" id="username" name="username">
@@ -10,12 +10,12 @@
         <input v-model="formData.password" type="password" id="password" name="password">
       </div>
       <div class="form-group">
-        <label for="age">日期：</label>
-        <input v-model="formData.date" type="date" id="age" name="age">
+        <label for="date">日期：</label>
+        <input v-model="formData.date" type="date" id="date" name="date">
       </div>
       <div class="form-group">
         <label for="avatar">头像：</label>
-        <input type="file" id="avatar" name="avatar">
+        <input type="file" id="avatar" name="avatar" @change="handleFileChange">
       </div>
       <div class="form-group">
         <label for="address">地址：</label>
@@ -52,7 +52,6 @@ const handleSubmit = async () => {
   form.append('password', formData.value.password);
   form.append('date', formData.value.date);
   form.append('address', formData.value.address);
-  console.log(form);// 添加地址数据
   if (selectedFile.value) {
     form.append('avatar', selectedFile.value);
   }
@@ -63,19 +62,11 @@ const handleSubmit = async () => {
       }
     });
     console.log('用户添加成功');
-    // 可选：添加成功后跳转到用户列表或其他页面
-    // router.push('/user-list');
+    router.push('/user'); // 添加成功后跳转到用户列表
   } catch (error) {
     console.error('用户添加失败:', error);
   }
 };
-
-
-const handleLogin = () => {
-  // 这里可以添加实际的登录验证逻辑，例如调用 API 进行验证
-  // 假设验证成功
-  router.push('/');
-}
 </script>
 
 <style scoped>
