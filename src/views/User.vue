@@ -12,7 +12,8 @@
       <el-table-column prop="date" label="日期" header-align="center" align="center" />
       <el-table-column label="操作" width="150" header-align="center" align="center">
         <template #default="scope">
-          <el-button size="small" type="primary" @click="saveEdit(scope.row)" class="action-button">
+          <!-- 修改编辑按钮 -->
+          <el-button size="small" type="primary" @click="openEdit(scope.row)" class="action-button">
             编辑
           </el-button>
           <!-- 修改后 -->
@@ -20,6 +21,29 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 编辑弹窗 -->
+    <el-dialog v-model="dialogVisible" title="编辑用户" width="30%">
+      <el-form :model="editForm" label-width="80px">
+        <el-form-item label="姓名">
+          <el-input v-model="editForm.name" />
+        </el-form-item>
+        <el-form-item label="网站">
+          <el-input v-model="editForm.web" />
+        </el-form-item>
+        <el-form-item label="地址">
+          <el-input v-model="editForm.address" />
+        </el-form-item>
+        <el-form-item label="日期">
+          <el-date-picker v-model="editForm.date" type="date" placeholder="选择日期" value-format="YYYY-MM-DD" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveEdit">保存</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 分页 -->
     <el-pagination class="pagination" background layout="prev, pager, next" :total="total" :page-size="pageSize"
@@ -96,19 +120,39 @@ const del = (id) => {
   }).catch(() => { });
 };
 
+const dialogVisible = ref(false)
+const editForm = ref({
+  id: '',
+  name: '',
+  web: '',
+  address: '',
+  date: ''
+})
+
+// 添加打开编辑对话框方法
+const openEdit = (row) => {
+  editForm.value = { ...row }
+  dialogVisible.value = true
+}
+
 const saveEdit = async () => {
   try {
-    await axios.put(`http://localhost:3000/api/users/${editForm.value.id}`, editForm.value);
-    const index = data.value.arr.findIndex((item) => item.id === editForm.value.id);
+    // 发送更新请求
+    await axios.put(`http://localhost:3000/api/users/${editForm.value.id}`, editForm.value)
+
+    // 更新本地数据
+    const index = data.value.arr.findIndex(item => item.id === editForm.value.id)
     if (index !== -1) {
-      data.value.arr[index] = { ...editForm.value };
+      data.value.arr.splice(index, 1, { ...editForm.value })
     }
-    dialogVisible.value = false;
+
+    ElMessage.success('修改成功')
+    dialogVisible.value = false
   } catch (error) {
-    ElMessage.error('保存失败');
-    console.error(error);
+    ElMessage.error('修改失败')
+    console.error(error)
   }
-};
+}
 </script>
 
 <style scoped>
