@@ -193,40 +193,135 @@ const removeTempAvatar = () => {
 
 // 修改保存方法
 const saveEdit = async () => {
+  const saveEdit = async () => {
+    try {
+      const formData = new FormData()
+
+      // 1. 添加基础字段（确保字段名与后端一致）
+      const fields = ['name', 'web', 'address', 'date']
+      fields.forEach(field => {
+        formData.append(field, editForm.value[field])
+      })
+      formData.append('id', editForm.value.id)
+
+      // 2. 优化文件处理逻辑
+      if (avatarFile.value) {
+        formData.append('avatar', avatarFile.value, avatarFile.value.name) // 添加文件名
+      } else if (editForm.value.avatar === null) {
+        formData.append('removeAvatar', 'true')
+      }
+
+      // 3. 添加调试日志
+      console.log('FormData内容：')
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value instanceof File ? `${value.name} (${value.type})` : value)
+      }
+
+      // 4. 发送请求（配置withCredentials）
+      const res = await axios.put(
+        `http://localhost:3000/api/users/${editForm.value.id}`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          withCredentials: true
+        }
+      )
+
+      // ...后续处理不变...
+    } catch (error) {
+      // 增强错误提示
+      if (error.response?.data?.error) {
+        ElMessage.error(`后端错误：${error.response.data.error}`)
+      } else {
+        ElMessage.error(`请求失败：${error.message}`)
+      }
+    }
+  }
   try {
     const formData = new FormData()
 
-    // 添加其他字段
-    Object.entries(editForm.value).forEach(([key, value]) => {
-      formData.append(key, value)
-    })
+    // 1. 显式添加字段（保持与后端一致）
+    formData.append('name', editForm.value.name)
+    formData.append('web', editForm.value.web)
+    formData.append('address', editForm.value.address)
+    formData.append('date', editForm.value.date)
 
-    // 添加头像文件（如果存在）
+    // 2. 头像处理逻辑优化
     if (avatarFile.value) {
       formData.append('avatar', avatarFile.value)
     } else if (!editForm.value.avatar) {
       formData.append('removeAvatar', 'true')
     }
 
-    // 发送请求
-    const res = await axios.put(`/api/users/${editForm.value.id}`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
+    // 3. 发送请求（使用完整路径）
+    const res = await axios.put(
+      `http://localhost:3000/api/users/${editForm.value.id}`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    )
 
-    // 更新本地数据
+    // 4. 响应处理
+    if (!res.data?.data?.avatar) {
+      throw new Error('头像更新失败')
+    }
+
+    // 5. 更新本地数据
     const index = data.value.arr.findIndex(item => item.id === editForm.value.id)
     if (index !== -1) {
-      data.value.arr.splice(index, 1, {
-        ...editForm.value,
-        avatar: res.data.avatar // 假设接口返回新头像地址
-      })
+      data.value.arr[index] = {
+        ...data.value.arr[index],
+        ...res.data.data,
+        avatar: res.data.data.avatar || null
+      }
     }
 
     ElMessage.success('修改成功')
     dialogVisible.value = false
   } catch (error) {
-    ElMessage.error(`修改失败: ${error.response?.data?.message || error.message}`)
+    ElMessage.error(`操作失败: ${error.message}`)
   }
+}
+
+// 错误解析函数
+const parseError = (error) => {
+  if (error.code === 'ECONNABORTED') return '请求超时'
+  if (error.response) {
+    switch (error.response.status) {
+      case 400:
+        return error.response.data?.error || '参数错误'
+      case 413:
+        return '文件大小超过限制'
+      case 415:
+        return '不支持的文件类型'
+      default:
+        return `服务器错误（${error.response.status}）`
+    }
+  }
+  return error.message
+}
+
+// 错误处理函数
+const getErrorMessage = (error) => {
+  if (error.response) {
+    const status = error.response.status
+    switch (status) {
+      case 400:
+        return '请求参数错误：' + JSON.stringify(error.response.data.errors)
+      case 413:
+        return '文件大小超过限制'
+      case 415:
+        return '不支持的媒体类型'
+      default:
+        return `服务器错误（${status}）`
+    }
+  }
+  return error.message
 }
 </script>
 
