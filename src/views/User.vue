@@ -97,30 +97,35 @@ const pageSize = ref(8);
 const total = ref(0);
 const currentPage = ref(1);
 
-// 获取用户数据
-onMounted(async () => {
+// 新增统一的获取数据方法
+const getData = async () => {
   try {
-    const response = await axios.get('http://localhost:3000/api/users');
-    data.value.arr = response.data;
-  } catch (error) {
-    ElMessage.error('数据加载失败');
-    console.error(error);
-  }
-});
-
-const handlePageChange = async (page) => {
-  currentPage.value = page;
-  try {
-    const response = await axios.get('/api/users', {
+    const response = await axios.get('http://localhost:3000/api/users', {
       params: {
         page: currentPage.value,
         pageSize: pageSize.value
       }
     });
-    data.value.arr = response.data.users;
+
+    // 根据后端返回数据结构调整
+    data.value.arr = response.data.users || response.data;
+    total.value = response.data.total || response.data.length;
+
   } catch (error) {
-    console.error('Error fetching data:', error);
+    ElMessage.error('数据加载失败');
+    console.error(error);
   }
+};
+
+// 获取用户数据，修改 onMounted 调用
+onMounted(() => {
+  getData(); // 替换原有的 axios 直接调用
+});
+
+// 修改分页切换方法
+const handlePageChange = async (page) => {
+  currentPage.value = page;
+  await getData(); // 直接调用统一方法 ✅
 };
 
 const del = (id) => {
@@ -134,9 +139,9 @@ const del = (id) => {
       // await axios.delete(`http://localhost:3000/api/users`);
 
       // 修改后：将 ID 加入 URL
-      await axios.delete(`http://localhost:3000/api/users/${id}`);  // ✅
-      data.value.arr = data.value.arr.filter((item) => item.id !== id);
-      ElMessage.success('删除成功');
+      await axios.delete(`http://localhost:3000/api/users/${id}`);
+      await getData(); // 删除后刷新数据 ✅
+      ElMessage.success('删除成功')
     } catch (error) {
       ElMessage.error('删除失败');
       console.error(error);
@@ -193,52 +198,6 @@ const removeTempAvatar = () => {
 
 // 修改保存方法
 const saveEdit = async () => {
-  const saveEdit = async () => {
-    try {
-      const formData = new FormData()
-
-      // 1. 添加基础字段（确保字段名与后端一致）
-      const fields = ['name', 'web', 'address', 'date']
-      fields.forEach(field => {
-        formData.append(field, editForm.value[field])
-      })
-      formData.append('id', editForm.value.id)
-
-      // 2. 优化文件处理逻辑
-      if (avatarFile.value) {
-        formData.append('avatar', avatarFile.value, avatarFile.value.name) // 添加文件名
-      } else if (editForm.value.avatar === null) {
-        formData.append('removeAvatar', 'true')
-      }
-
-      // 3. 添加调试日志
-      console.log('FormData内容：')
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value instanceof File ? `${value.name} (${value.type})` : value)
-      }
-
-      // 4. 发送请求（配置withCredentials）
-      const res = await axios.put(
-        `http://localhost:3000/api/users/${editForm.value.id}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          withCredentials: true
-        }
-      )
-
-      // ...后续处理不变...
-    } catch (error) {
-      // 增强错误提示
-      if (error.response?.data?.error) {
-        ElMessage.error(`后端错误：${error.response.data.error}`)
-      } else {
-        ElMessage.error(`请求失败：${error.message}`)
-      }
-    }
-  }
   try {
     const formData = new FormData()
 
@@ -281,8 +240,9 @@ const saveEdit = async () => {
       }
     }
 
-    ElMessage.success('修改成功')
-    dialogVisible.value = false
+    await getData(); // 保存后刷新数据 ✅
+    ElMessage.success('修改成功');
+    dialogVisible.value = false;
   } catch (error) {
     ElMessage.error(`操作失败: ${error.message}`)
   }
