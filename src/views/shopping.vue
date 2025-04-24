@@ -102,7 +102,7 @@ onMounted(() => {
 
 const filter = ref({
   minPrice: 0,
-  maxPrice: 10000,
+  maxPrice: 110000,
   sortBy: 'sales'
 })
 
