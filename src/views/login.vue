@@ -56,6 +56,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import axios from 'axios'
 
 const router = useRouter()
 
@@ -82,22 +83,28 @@ const loginForm = ref(null) // 表单引用
 
 // 登录逻辑
 const handleLogin = () => {
-  // 表单验证
-  loginForm.value.validate((valid) => {
-    if (valid) {
-      // 验证通过，执行登录逻辑
-      loading.value = true
-      // 模拟登录流程
-      setTimeout(() => {
+  //发送post请求
+  axios.post('http://localhost:3000/api/login', {
+    username: form.value.username,
+    password: form.value.password
+  })
+    .then(res => {
+      console.log(res);
+
+      if (res.data.ok === 200) {
+        // 登录成功
         ElMessage.success('登录成功')
         router.push('/index')
-        loading.value = false
-      }, 1000)
-    } else {
-      // 验证不通过，提示错误
-      ElMessage.error('请检查输入内容')
-    }
-  })
+        //更新localStorage
+        localStorage.setItem('username', form.value.username)
+      } else {
+        // 登录失败
+        ElMessage.error('登录失败，请检查用户名和密码')
+      }
+    }).catch(err => {
+      console.error(err)
+      ElMessage.error('登录失败，请检查用户名和密码')
+    })
 }
 </script>
 
