@@ -89,13 +89,14 @@ const handleLogin = () => {
     password: form.value.password
   })
     .then(res => {
-      console.log(res);
+      console.log(res.data.token);
 
       if (res.data.ok === 200) {
         // 登录成功
         ElMessage.success('登录成功')
         router.push('/index')
-        //更新localStorage
+        //更新localStorage,保存token和用户名
+        localStorage.setItem('token', res.data.token)
         localStorage.setItem('username', form.value.username)
       } else {
         // 登录失败

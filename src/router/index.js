@@ -4,7 +4,7 @@ const routes = [
 	{
 		path: "/", // http://localhost:5173
 		component: () => import("../views/VerticalNavigation.vue"),
-		redirect: "/index",
+		redirect: "/login", // 重定向到登录页面
 		children: [
 			{
 				path: "index",
@@ -45,4 +45,12 @@ const router = createRouter({
 	routes
 })
 
+//全局前置守卫
+router.beforeEach((to, from, next) => {
+	const token = localStorage.getItem("token")
+	if (to.path != "/login" && !token)
+		next({ path: "/login" }) // 如果没有token，重定向到登录页面
+	else
+		next() // 如果有token，继续导航
+})
 export default router
