@@ -3,8 +3,8 @@
     <div class="title">
       <h3><img src="/c.png" style="width: 50px;height: 50px;margin: 5px;">欢迎来到笔电商城</h3>
       <div class="login">
-        <el-link type="info">欢迎您，请</el-link>
-        <el-link type="primary" @click="goToLogin">登录</el-link>
+        <img src="/lsg_r.png">
+        <el-button type="primary" @click="zhuxiao">注销</el-button>
       </div>
     </div>
 
@@ -99,9 +99,14 @@ import { User, Goods, Bell, Checked, ArrowRight } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
-const goToLogin = () => {
-  router.push('/login')
-}
+const zhuxiao = () => {
+  router.push('/login').then(() => {
+    //注销token
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    window.scrollTo(0, 0); // 滚动到页面顶部
+  });
+};
 
 const goToShopping = () => {
   router.push('/shopping').then(() => {
@@ -120,7 +125,7 @@ const bannerHeight = ref(500 / 1500 * window.innerWidth)
 
 const updateBannerHeight = () => {
   screenWidth.value = window.innerWidth
-  bannerHeight.value = 500 / 1500 * screenWidth.value 
+  bannerHeight.value = 500 / 1500 * screenWidth.value
 }
 
 const debounce = (fn, delay) => {
@@ -159,6 +164,13 @@ const services = ref([
 </script>
 
 <style scoped>
+.login {
+  display: flex;
+  flex-direction: column;
+  /* 修改为上下排列 */
+  margin-right: 20px;
+}
+
 .container {
   margin: 20px;
   border-radius: 12px;
