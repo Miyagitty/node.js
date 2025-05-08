@@ -88,6 +88,8 @@
         </el-row>
       </el-card>
     </el-col>
+    <!-- 图表 -->
+    <div id="chart-container"></div>
   </el-card>
 </template>
 
@@ -96,6 +98,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElRow, ElCol, ElButton } from 'element-plus';
 import { User, Goods, Bell, Checked, ArrowRight } from '@element-plus/icons-vue'
+import * as echarts from 'echarts'; // 引入 echarts
 
 const router = useRouter()
 
@@ -141,12 +144,87 @@ onMounted(() => {
   updateBannerHeight()
 
   // 窗口大小发生改变时更新高度
-  window.addEventListener('resize', debounce(updateBannerHeight, 100))
-})
+  window.addEventListener('resize', debounce(updateBannerHeight, 100));
+
+  var dom = document.getElementById('chart-container');
+  var myChart = echarts.init(dom, null, {
+    renderer: 'canvas',
+    useDirtyRect: false
+  });
+
+  const data = [];
+  for (let i = 0; i < 5; ++i) {
+    data.push(Math.round(Math.random() * 200));
+  }
+  const option = {
+    xAxis: {
+      max: 'dataMax'
+    },
+    yAxis: {
+      type: 'category',
+      data: ['天选', '机革', '拯救者', 'ROG', '神舟'],
+      inverse: true,
+      animationDuration: 300,
+      animationDurationUpdate: 300,
+      max: 4
+    },
+    series: [
+      {
+        realtimeSort: true,
+        name: 'X',
+        type: 'bar',
+        data: data,
+        label: {
+          show: true,
+          position: 'right',
+          valueAnimation: true
+        }
+      }
+    ],
+    legend: {
+      show: true
+    },
+    animationDuration: 0,
+    animationDurationUpdate: 3000,
+    animationEasing: 'linear',
+    animationEasingUpdate: 'linear'
+  };
+
+  if (option && typeof option === 'object') {
+    myChart.setOption(option);
+  }
+
+  window.addEventListener('resize', myChart.resize);
+
+  function run() {
+    for (var i = 0; i < data.length; ++i) {
+      if (Math.random() > 0.9) {
+        data[i] += Math.round(Math.random() * 2000);
+      } else {
+        data[i] += Math.round(Math.random() * 200);
+      }
+    }
+    myChart.setOption({
+      series: [
+        {
+          type: 'bar',
+          data
+        }
+      ]
+    });
+  }
+
+  setTimeout(function () {
+    run();
+  }, 0);
+  setInterval(function () {
+    run();
+  }, 3000);
+});
 
 onUnmounted(() => {
   // 组件卸载时移除事件监听器
-  window.removeEventListener('resize', debounce(updateBannerHeight, 100))
+  window.removeEventListener('resize', debounce(updateBannerHeight, 100));
 })
 
 const notices = ref([
@@ -164,6 +242,11 @@ const services = ref([
 </script>
 
 <style scoped>
+#chart-container {
+  width: 100%;
+  height: 400px;
+}
+
 .login {
   display: flex;
   flex-direction: column;
